@@ -39,6 +39,7 @@ dependencies:
   firebase_auth: ^6.1.4
   cloud_firestore: ^6.1.2
   dio: ^5.9.1
+  pretty_dio_logger: ^1.4.0
   hive: ^2.2.3
   hive_flutter: ^1.1.0
   connectivity_plus: ^7.0.0
