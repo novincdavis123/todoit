@@ -20,8 +20,9 @@ class AddTaskUseCase {
   final TaskRepository repository;
   AddTaskUseCase(this.repository);
 
-  Future<void> call(Task task, String userId) {
-    return repository.addTask(task, userId);
+  Future<Task> call(Task task, String userId) async {
+    final docRef = await repository.addTask(task, userId);
+    return task.copyWith(id: docRef.id); // assign Firestore ID
   }
 }
 

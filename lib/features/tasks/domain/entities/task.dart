@@ -2,32 +2,33 @@ class Task {
   final String id;
   final String title;
   final String category;
-  final DateTime dueDate;
   final int priority;
+  final DateTime dueDate;
   final bool isCompleted;
 
   Task({
     required this.id,
     required this.title,
     required this.category,
-    required this.dueDate,
     required this.priority,
+    required this.dueDate,
     required this.isCompleted,
   });
 
   Task copyWith({
+    String? id,
     String? title,
     String? category,
-    DateTime? dueDate,
     int? priority,
+    DateTime? dueDate,
     bool? isCompleted,
   }) {
     return Task(
-      id: id,
+      id: id ?? this.id,
       title: title ?? this.title,
       category: category ?? this.category,
-      dueDate: dueDate ?? this.dueDate,
       priority: priority ?? this.priority,
+      dueDate: dueDate ?? this.dueDate,
       isCompleted: isCompleted ?? this.isCompleted,
     );
   }

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:todoit/features/auth/presentation/providers/auth_provider.dart';
 import 'package:todoit/features/profile/presentation/pages/profile_page.dart';
 import 'package:todoit/features/tasks/domain/entities/task.dart';
 import 'package:todoit/features/tasks/presentation/providers/task_provider.dart';
@@ -20,11 +19,10 @@ class _TasksPageState extends ConsumerState<TasksPage> {
   @override
   void initState() {
     super.initState();
+
+    // Load tasks after the first frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final userId = ref.read(authProvider).user?.uid;
-      if (userId != null) {
-        ref.read(taskProvider.notifier).loadTasks(userId);
-      }
+      ref.read(taskProvider.notifier).loadTasksForCurrentUser();
     });
   }
 
@@ -67,7 +65,7 @@ class _TasksPageState extends ConsumerState<TasksPage> {
                         lastDate: DateTime(2100),
                       );
                       if (picked != null) dueDate = picked;
-                      setState(() {});
+                      setState(() {}); // update the UI
                     },
                     child: Text(
                       dueDate == null
@@ -87,29 +85,28 @@ class _TasksPageState extends ConsumerState<TasksPage> {
           ),
           ElevatedButton(
             onPressed: () async {
-              final userId = ref.read(authProvider).user?.uid;
               final priority = int.tryParse(priorityController.text) ?? 3;
 
-              if (userId != null &&
-                  titleController.text.isNotEmpty &&
-                  categoryController.text.isNotEmpty &&
-                  dueDate != null) {
-                final task = Task(
-                  id: '',
-                  title: titleController.text.trim(),
-                  category: categoryController.text.trim(),
-                  priority: priority,
-                  dueDate: dueDate!,
-                  isCompleted: false,
-                );
-
-                await ref.read(taskProvider.notifier).addTask(task, userId);
-                Navigator.pop(context);
-              } else {
+              if (titleController.text.isEmpty ||
+                  categoryController.text.isEmpty ||
+                  dueDate == null) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Please fill all fields')),
                 );
+                return;
               }
+
+              final task = Task(
+                id: '',
+                title: titleController.text.trim(),
+                category: categoryController.text.trim(),
+                priority: priority,
+                dueDate: dueDate!,
+                isCompleted: false,
+              );
+
+              await ref.read(taskProvider.notifier).addTaskForCurrentUser(task);
+              Navigator.pop(context);
             },
             child: const Text('Add'),
           ),
@@ -151,13 +148,11 @@ class _TasksPageState extends ConsumerState<TasksPage> {
       ),
       body: RefreshIndicator(
         onRefresh: () async {
-          final userId = ref.read(authProvider).user?.uid;
-          if (userId != null) {
-            await ref.read(taskProvider.notifier).loadTasks(userId);
-          }
+          await ref.read(taskProvider.notifier).loadTasksForCurrentUser();
         },
         child: Column(
           children: [
+            // Search
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: TextField(
@@ -169,6 +164,7 @@ class _TasksPageState extends ConsumerState<TasksPage> {
                 onChanged: (v) => setState(() => searchQuery = v),
               ),
             ),
+            // Filter
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8.0),
               child: Row(
@@ -182,6 +178,7 @@ class _TasksPageState extends ConsumerState<TasksPage> {
                 }).toList(),
               ),
             ),
+            // Task list
             Expanded(
               child: taskState.status == TaskStatus.loading
                   ? const Center(child: CircularProgressIndicator())
@@ -200,15 +197,11 @@ class _TasksPageState extends ConsumerState<TasksPage> {
                           trailing: Checkbox(
                             value: task.isCompleted,
                             onChanged: (val) async {
-                              final userId = ref.read(authProvider).user?.uid;
-                              if (userId != null) {
-                                await ref
-                                    .read(taskProvider.notifier)
-                                    .updateTask(
-                                      task.copyWith(isCompleted: val ?? false),
-                                      userId,
-                                    );
-                              }
+                              await ref
+                                  .read(taskProvider.notifier)
+                                  .updateTaskForCurrentUser(
+                                    task.copyWith(isCompleted: val ?? false),
+                                  );
                             },
                           ),
                           onTap: () {},

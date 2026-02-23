@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:todoit/features/tasks/domain/usecases/task_usecase.dart';
 import '../../domain/entities/task.dart';
 
@@ -34,8 +35,14 @@ class TaskNotifier extends Notifier<TaskState> {
     return TaskState();
   }
 
-  // --- Load tasks ---
-  Future<void> loadTasks(String userId) async {
+  /// Helper to get current user ID
+  String? get currentUserId => FirebaseAuth.instance.currentUser?.uid;
+
+  /// Load tasks for current user
+  Future<void> loadTasksForCurrentUser() async {
+    final userId = currentUserId;
+    if (userId == null) return;
+
     state = state.copyWith(status: TaskStatus.loading);
     try {
       final tasks = await fetchTasksUseCase(userId: userId);
@@ -45,21 +52,31 @@ class TaskNotifier extends Notifier<TaskState> {
     }
   }
 
-  // --- Add new task ---
-  Future<void> addTask(Task task, String userId) async {
+  /// Add task for current user
+  Future<void> addTaskForCurrentUser(Task task) async {
+    final userId = currentUserId;
+    if (userId == null) return;
+
+    state = state.copyWith(status: TaskStatus.loading);
     try {
-      await addTaskUseCase(task, userId);
-      await loadTasks(userId); // refresh after adding
+      // addTaskUseCase should return the Task with proper Firestore ID
+      final newTask = await addTaskUseCase(task, userId);
+      state = state.copyWith(
+        status: TaskStatus.success,
+        tasks: [...state.tasks, newTask],
+      );
     } catch (e) {
       state = state.copyWith(status: TaskStatus.error, error: e.toString());
     }
   }
 
-  // --- Update task ---
-  Future<void> updateTask(Task task, String userId) async {
+  /// Update task for current user
+  Future<void> updateTaskForCurrentUser(Task task) async {
+    final userId = currentUserId;
+    if (userId == null) return;
+
     try {
       await updateTaskUseCase(task, userId);
-      // Update locally to avoid refetching all tasks
       final updatedTasks = state.tasks
           .map((t) => t.id == task.id ? task : t)
           .toList();

@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:todoit/features/tasks/data/datasources/local_datasource.dart';
 import '../../domain/entities/task.dart';
 import '../../domain/repositories/task_repository.dart';
@@ -27,16 +28,20 @@ class TaskRepositoryImpl implements TaskRepository {
   }
 
   @override
-  Future<void> addTask(Task task, String userId) async {
-    final taskModel = TaskModel(
-      id: task.id,
-      title: task.title,
-      category: task.category,
-      dueDate: task.dueDate,
-      priority: task.priority,
-      isCompleted: task.isCompleted,
-    );
-    await remote.addTask(taskModel, userId);
+  Future<DocumentReference> addTask(Task task, String userId) async {
+    final docRef = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(userId)
+        .collection('tasks')
+        .add({
+          'title': task.title,
+          'category': task.category,
+          'priority': task.priority,
+          'dueDate': Timestamp.fromDate(task.dueDate),
+          'isCompleted': task.isCompleted,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+    return docRef;
   }
 
   @override
